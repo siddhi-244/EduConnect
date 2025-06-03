@@ -28,15 +28,15 @@ export async function getTeacherAvailabilityForDate(teacherId: string, date: Dat
   if (!teacherId) throw new Error("Teacher ID is required.");
   if (!date) throw new Error("Date is required.");
 
-  const startOfDay = Timestamp.fromDate(new Date(date.setHours(0, 0, 0, 0)));
-  const endOfDay = Timestamp.fromDate(new Date(date.setHours(23, 59, 59, 999)));
+  const startOfDayTimestamp = Timestamp.fromDate(new Date(date.setHours(0, 0, 0, 0)));
+  const endOfDayTimestamp = Timestamp.fromDate(new Date(date.setHours(23, 59, 59, 999)));
 
   const availabilityCollectionRef = collection(db, "availabilities");
   const q = query(
     availabilityCollectionRef,
     where("teacherId", "==", teacherId),
-    where("startTime", ">=", startOfDay),
-    where("startTime", "<=", endOfDay),
+    where("startTime", ">=", startOfDayTimestamp),
+    where("startTime", "<=", endOfDayTimestamp),
     orderBy("startTime", "asc")
   );
 
@@ -44,6 +44,7 @@ export async function getTeacherAvailabilityForDate(teacherId: string, date: Dat
   const slots: AvailabilitySlot[] = [];
   querySnapshot.forEach((doc) => {
     const data = doc.data();
+    // Ensure Timestamps are converted to ISO strings before returning
     slots.push({ 
       id: doc.id,
       teacherId: data.teacherId,
@@ -68,20 +69,27 @@ interface BookSlotParams {
   teacherName: string;
   teacherEmail: string;
   availabilitySlotId: string;
-  startTime: Timestamp; // Client will send Timestamp
-  endTime: Timestamp;   // Client will send Timestamp
+  startTime: string; // Expect ISO string from client
+  endTime: string;   // Expect ISO string from client
 }
 
 export async function bookSlot(params: BookSlotParams): Promise<string> {
   const {
     studentId, studentName, studentEmail,
     teacherId, teacherName, teacherEmail,
-    availabilitySlotId, startTime, endTime,
+    availabilitySlotId, 
+    startTime: startTimeISO, // Renamed for clarity
+    endTime: endTimeISO,     // Renamed for clarity
   } = params;
 
-  if (!studentId || !teacherId || !availabilitySlotId) {
+  if (!studentId || !teacherId || !availabilitySlotId || !startTimeISO || !endTimeISO) {
     throw new Error("Missing required parameters for booking.");
   }
+
+  // Convert ISO strings to Firebase Timestamps
+  const startTimeTimestamp = Timestamp.fromDate(new Date(startTimeISO));
+  const endTimeTimestamp = Timestamp.fromDate(new Date(endTimeISO));
+
 
   const availabilitySlotRef = doc(db, "availabilities", availabilitySlotId);
   const newBookingRef = doc(collection(db, "bookings")); 
@@ -93,13 +101,18 @@ export async function bookSlot(params: BookSlotParams): Promise<string> {
         throw new Error("Availability slot not found.");
       }
 
-      const slotData = slotDoc.data() as AvailabilitySlot & { startTime: Timestamp, endTime: Timestamp }; // Internally it is timestamp
+      const slotData = slotDoc.data(); // No need to cast to AvailabilitySlot with Timestamps here directly
       if (slotData.isBooked) {
         throw new Error("This time slot is no longer available.");
       }
       if (slotData.teacherId !== teacherId) {
         throw new Error("Slot does not belong to the selected teacher.");
       }
+      // Compare Firestore Timestamps directly
+      if (!slotData.startTime.isEqual(startTimeTimestamp) || !slotData.endTime.isEqual(endTimeTimestamp)) {
+        throw new Error("Slot timing mismatch. Please refresh and try again.");
+      }
+
 
       transaction.update(availabilitySlotRef, {
         isBooked: true,
@@ -109,7 +122,7 @@ export async function bookSlot(params: BookSlotParams): Promise<string> {
         updatedAt: serverTimestamp(),
       });
 
-      const newBookingData = { // Type Omit<Booking, 'id' | 'createdAt' | 'updatedAt' | 'startTime' | 'endTime'> & {startTime: Timestamp, endTime: Timestamp} doesn't quite work with serverTimestamp
+      const newBookingData = { 
         studentId,
         studentName,
         studentEmail,
@@ -117,9 +130,10 @@ export async function bookSlot(params: BookSlotParams): Promise<string> {
         teacherName,
         teacherEmail,
         availabilitySlotId,
-        startTime, // This is already a Timestamp from params
-        endTime,   // This is already a Timestamp from params
+        startTime: startTimeTimestamp, // Use the converted Timestamp
+        endTime: endTimeTimestamp,   // Use the converted Timestamp
         status: "confirmed",
+        // createdAt and updatedAt will be set by serverTimestamp
       };
       transaction.set(newBookingRef, {
         ...newBookingData,
@@ -128,10 +142,11 @@ export async function bookSlot(params: BookSlotParams): Promise<string> {
       });
     });
 
+    // For email, convert Timestamp back to JS Date
     await sendBookingConfirmationEmail({
       studentEmail, studentName,
       teacherEmail, teacherName,
-      startTime: startTime.toDate(), // Convert Timestamp to Date for email
+      startTime: startTimeTimestamp.toDate(), // Convert Timestamp to Date for email
     });
 
     return newBookingRef.id; 
@@ -144,11 +159,13 @@ export async function bookSlot(params: BookSlotParams): Promise<string> {
 async function sendBookingConfirmationEmail(details: {
   studentEmail: string; studentName: string;
   teacherEmail: string; teacherName: string;
-  startTime: Date;
+  startTime: Date; // Expects JS Date
 }) {
+  // This function now correctly receives a JS Date object
   console.log(`Simulating email sending for booking:
     To Student (${details.studentEmail}): Your session with ${details.teacherName} at ${details.startTime.toLocaleString()} is confirmed.
     To Teacher (${details.teacherEmail}): You have a new session with ${details.studentName} at ${details.startTime.toLocaleString()}.
   `);
+  // In a real app, you'd use an email service here.
   return Promise.resolve();
 }

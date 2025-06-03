@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Users, CheckCircle, Loader2, XCircle, CalendarDays, Search } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import type { AvailabilitySlot, Teacher, UserProfile } from "@/types";
+import type { AvailabilitySlot, Teacher } from "@/types";
 import { getAvailableTeachers, getTeacherAvailabilityForDate, bookSlot } from "@/app/actions/booking.actions";
 import { format } from "date-fns";
-import { Timestamp } from "firebase/firestore";
+// Timestamp import is not directly needed on the client for this page after changes
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
@@ -70,6 +70,7 @@ export default function FindTeacherPage() {
     if (!userProfile || !selectedTeacher) return;
     setIsBooking(true);
     try {
+      // Pass startTime and endTime as ISO strings directly from the slot object
       await bookSlot({
         studentId: userProfile.uid,
         studentName: userProfile.displayName || "Student",
@@ -78,11 +79,12 @@ export default function FindTeacherPage() {
         teacherName: selectedTeacher.displayName,
         teacherEmail: selectedTeacher.email,
         availabilitySlotId: slot.id,
-        startTime: Timestamp.fromDate(new Date(slot.startTime)), // Convert ISO string to Timestamp
-        endTime: Timestamp.fromDate(new Date(slot.endTime)),     // Convert ISO string to Timestamp
+        startTime: slot.startTime, // slot.startTime is already an ISO string
+        endTime: slot.endTime,     // slot.endTime is already an ISO string
       });
       toast({ title: "Success!", description: `Session with ${selectedTeacher.displayName} booked.` });
       
+      // Refetch availability to update the UI
       if (selectedTeacher && selectedDate) {
         const slots = await getTeacherAvailabilityForDate(selectedTeacher.uid, selectedDate);
         setAvailability(slots.filter(s => !s.isBooked));
