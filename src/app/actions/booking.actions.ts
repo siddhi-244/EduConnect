@@ -1,3 +1,4 @@
+
 "use server";
 
 import { collection, query, where, getDocs, Timestamp, orderBy, doc, runTransaction, serverTimestamp, setDoc } from "firebase/firestore";
@@ -6,14 +7,13 @@ import type { AvailabilitySlot, Teacher, Booking, UserProfile } from "@/types";
 
 export async function getAvailableTeachers(): Promise<Teacher[]> {
   const usersCollectionRef = collection(db, "users");
-  // Assuming 'teacher' role is stored in user documents
   const q = query(usersCollectionRef, where("role", "==", "teacher"));
   
   const querySnapshot = await getDocs(q);
   const teachers: Teacher[] = [];
   querySnapshot.forEach((doc) => {
     const data = doc.data() as UserProfile;
-    if (data.displayName && data.email) { // Ensure essential fields are present
+    if (data.displayName && data.email) { 
         teachers.push({ 
             uid: doc.id, 
             displayName: data.displayName,
@@ -43,7 +43,19 @@ export async function getTeacherAvailabilityForDate(teacherId: string, date: Dat
   const querySnapshot = await getDocs(q);
   const slots: AvailabilitySlot[] = [];
   querySnapshot.forEach((doc) => {
-    slots.push({ id: doc.id, ...doc.data() } as AvailabilitySlot);
+    const data = doc.data();
+    slots.push({ 
+      id: doc.id,
+      teacherId: data.teacherId,
+      startTime: (data.startTime as Timestamp).toDate().toISOString(),
+      endTime: (data.endTime as Timestamp).toDate().toISOString(),
+      isBooked: data.isBooked,
+      bookedByStudentId: data.bookedByStudentId,
+      studentName: data.studentName,
+      studentEmail: data.studentEmail,
+      createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
+      updatedAt: (data.updatedAt as Timestamp).toDate().toISOString(),
+     } as AvailabilitySlot);
   });
   return slots;
 }
@@ -56,8 +68,8 @@ interface BookSlotParams {
   teacherName: string;
   teacherEmail: string;
   availabilitySlotId: string;
-  startTime: Timestamp;
-  endTime: Timestamp;
+  startTime: Timestamp; // Client will send Timestamp
+  endTime: Timestamp;   // Client will send Timestamp
 }
 
 export async function bookSlot(params: BookSlotParams): Promise<string> {
@@ -72,7 +84,7 @@ export async function bookSlot(params: BookSlotParams): Promise<string> {
   }
 
   const availabilitySlotRef = doc(db, "availabilities", availabilitySlotId);
-  const newBookingRef = doc(collection(db, "bookings")); // Auto-generate ID
+  const newBookingRef = doc(collection(db, "bookings")); 
 
   try {
     await runTransaction(db, async (transaction) => {
@@ -81,7 +93,7 @@ export async function bookSlot(params: BookSlotParams): Promise<string> {
         throw new Error("Availability slot not found.");
       }
 
-      const slotData = slotDoc.data() as AvailabilitySlot;
+      const slotData = slotDoc.data() as AvailabilitySlot & { startTime: Timestamp, endTime: Timestamp }; // Internally it is timestamp
       if (slotData.isBooked) {
         throw new Error("This time slot is no longer available.");
       }
@@ -89,17 +101,15 @@ export async function bookSlot(params: BookSlotParams): Promise<string> {
         throw new Error("Slot does not belong to the selected teacher.");
       }
 
-      // Mark the availability slot as booked
       transaction.update(availabilitySlotRef, {
         isBooked: true,
         bookedByStudentId: studentId,
-        studentName: studentName, // Denormalized for easier display on teacher's schedule
-        studentEmail: studentEmail, // Denormalized for easier notification
+        studentName: studentName, 
+        studentEmail: studentEmail, 
         updatedAt: serverTimestamp(),
       });
 
-      // Create a new booking record
-      const newBookingData: Omit<Booking, 'id' | 'createdAt' | 'updatedAt'> = {
+      const newBookingData = { // Type Omit<Booking, 'id' | 'createdAt' | 'updatedAt' | 'startTime' | 'endTime'> & {startTime: Timestamp, endTime: Timestamp} doesn't quite work with serverTimestamp
         studentId,
         studentName,
         studentEmail,
@@ -107,8 +117,8 @@ export async function bookSlot(params: BookSlotParams): Promise<string> {
         teacherName,
         teacherEmail,
         availabilitySlotId,
-        startTime,
-        endTime,
+        startTime, // This is already a Timestamp from params
+        endTime,   // This is already a Timestamp from params
         status: "confirmed",
       };
       transaction.set(newBookingRef, {
@@ -118,23 +128,19 @@ export async function bookSlot(params: BookSlotParams): Promise<string> {
       });
     });
 
-    // Placeholder for sending email notifications
-    // In a real app, you'd call an email service here
     await sendBookingConfirmationEmail({
       studentEmail, studentName,
       teacherEmail, teacherName,
-      startTime: startTime.toDate(),
+      startTime: startTime.toDate(), // Convert Timestamp to Date for email
     });
 
-    return newBookingRef.id; // Return the ID of the new booking
+    return newBookingRef.id; 
   } catch (error: any) {
     console.error("Booking transaction failed: ", error);
     throw new Error(error.message || "Failed to book the slot due to a server error.");
   }
 }
 
-
-// Placeholder email notification function
 async function sendBookingConfirmationEmail(details: {
   studentEmail: string; studentName: string;
   teacherEmail: string; teacherName: string;
@@ -144,7 +150,5 @@ async function sendBookingConfirmationEmail(details: {
     To Student (${details.studentEmail}): Your session with ${details.teacherName} at ${details.startTime.toLocaleString()} is confirmed.
     To Teacher (${details.teacherEmail}): You have a new session with ${details.studentName} at ${details.startTime.toLocaleString()}.
   `);
-  // Actual email sending logic would use a service like SendGrid, Nodemailer, etc.
-  // This might involve a separate API endpoint or a Firebase Function.
   return Promise.resolve();
 }

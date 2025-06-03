@@ -11,14 +11,14 @@ export interface UserProfile {
 export interface AvailabilitySlot {
   id: string;
   teacherId: string;
-  startTime: Timestamp;
-  endTime: Timestamp;
+  startTime: string; // Was Timestamp
+  endTime: string;   // Was Timestamp
   isBooked: boolean;
   bookedByStudentId?: string;
-  studentName?: string; // Denormalized for easier display
-  studentEmail?: string; // Denormalized for notifications
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
+  studentName?: string; 
+  studentEmail?: string; 
+  createdAt: string; // Was Timestamp
+  updatedAt: string; // Was Timestamp
 }
 
 export interface Booking {
@@ -30,16 +30,15 @@ export interface Booking {
   teacherName: string;
   teacherEmail: string;
   availabilitySlotId: string;
-  startTime: Timestamp;
-  endTime: Timestamp;
+  startTime: string; // Was Timestamp
+  endTime: string;   // Was Timestamp
   status: 'confirmed' | 'cancelled_by_student' | 'cancelled_by_teacher';
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
+  createdAt: string; // Was Timestamp
+  updatedAt: string; // Was Timestamp
 }
 
 export interface Teacher {
   uid: string;
   displayName: string;
   email: string;
-  // Add any other teacher-specific fields, e.g., subjects, bio
 }

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useAuth } from "@/hooks/use-auth-hook";
@@ -11,12 +12,12 @@ import { CalendarPlus, CheckCircle, Loader2, PlusCircle, Trash2, XCircle } from 
 import React, { useState, useEffect } from "react";
 import { addAvailability, getTeacherAvailability, deleteAvailabilitySlot } from "@/app/actions/availability.actions";
 import type { AvailabilitySlot } from "@/types";
-import { Timestamp } from "firebase/firestore";
-import { format, parse, setHours, setMinutes, setSeconds, setMilliseconds, isPast, addDays } from "date-fns";
+// Timestamp is not needed here as we deal with strings/Dates on client
+import { format, parse, setHours, setMinutes, setSeconds, setMilliseconds, isPast, addDays, isEqual, startOfDay } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
 interface TimeSlot {
-  id?: string; // For existing slots
+  id?: string; 
   date: Date;
   startTime: string; // "HH:mm"
   endTime: string; // "HH:mm"
@@ -35,6 +36,7 @@ export default function ManageAvailabilityPage() {
     if (userProfile?.role === 'teacher' && userProfile.uid) {
       fetchAvailability();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userProfile]);
   
   const fetchAvailability = async () => {
@@ -56,7 +58,7 @@ export default function ManageAvailabilityPage() {
       toast({ variant: "destructive", title: "Error", description: "Please select a date first." });
       return;
     }
-    if (isPast(addDays(selectedDate,1)) && !isToday(selectedDate)) { // allow today even if past
+    if (isPast(addDays(startOfDay(selectedDate),1)) && !isToday(selectedDate)) { 
        toast({ variant: "destructive", title: "Error", description: "Cannot add availability for past dates." });
        return;
     }
@@ -65,9 +67,7 @@ export default function ManageAvailabilityPage() {
 
   const isToday = (someDate: Date) => {
     const today = new Date();
-    return someDate.getDate() === today.getDate() &&
-      someDate.getMonth() === today.getMonth() &&
-      someDate.getFullYear() === today.getFullYear();
+    return isEqual(startOfDay(someDate), startOfDay(today));
   };
 
   const handleTimeSlotChange = (index: number, field: 'startTime' | 'endTime', value: string) => {
@@ -86,7 +86,7 @@ export default function ManageAvailabilityPage() {
     try {
       await deleteAvailabilitySlot(slotId);
       toast({ title: "Success", description: "Availability slot deleted." });
-      fetchAvailability(); // Refresh list
+      fetchAvailability(); 
     } catch (error: any) {
       toast({ variant: "destructive", title: "Error", description: error.message || "Failed to delete slot." });
     } finally {
@@ -107,26 +107,31 @@ export default function ManageAvailabilityPage() {
         const [startH, startM] = slot.startTime.split(':').map(Number);
         const [endH, endM] = slot.endTime.split(':').map(Number);
 
-        const startDate = setMilliseconds(setSeconds(setMinutes(setHours(slot.date, startH), startM),0),0);
-        const endDate = setMilliseconds(setSeconds(setMinutes(setHours(slot.date, endH), endM),0),0);
+        const baseDate = new Date(slot.date);
+        if (isNaN(baseDate.getTime())) {
+            throw new Error(`Invalid date provided for a slot.`);
+        }
+
+        const startDate = setMilliseconds(setSeconds(setMinutes(setHours(baseDate, startH), startM),0),0);
+        const endDate = setMilliseconds(setSeconds(setMinutes(setHours(baseDate, endH), endM),0),0);
         
         if (startDate >= endDate) {
-          throw new Error(`Slot ${slot.startTime} - ${slot.endTime} on ${format(slot.date, "PPP")} has an invalid time range.`);
+          throw new Error(`Slot ${slot.startTime} - ${slot.endTime} on ${format(baseDate, "PPP")} has an invalid time range.`);
         }
-        if (isPast(endDate) && !isToday(slot.date)) {
-          throw new Error(`Slot ${slot.startTime} - ${slot.endTime} on ${format(slot.date, "PPP")} is in the past.`);
+        if (isPast(endDate) && !isToday(baseDate)) {
+          throw new Error(`Slot ${slot.startTime} - ${slot.endTime} on ${format(baseDate, "PPP")} is in the past.`);
         }
 
         return {
-          startTime: Timestamp.fromDate(startDate),
-          endTime: Timestamp.fromDate(endDate),
+          startTime: startDate.toISOString(), 
+          endTime: endDate.toISOString(),   
         };
       });
 
       await addAvailability(userProfile.uid, slotsToSave);
       toast({ title: "Success!", description: "Your availability has been updated." });
-      setTimeSlots([]); // Clear form
-      fetchAvailability(); // Refresh list
+      setTimeSlots([]); 
+      fetchAvailability(); 
     } catch (error: any) {
       console.error("Failed to save availability:", error);
       toast({ variant: "destructive", title: "Error Saving Availability", description: error.message });
@@ -150,14 +155,25 @@ export default function ManageAvailabilityPage() {
     );
   }
   
-  const displayedDate = selectedDate || new Date();
-  const slotsForSelectedDate = existingSlots.filter(slot => 
-    format(slot.startTime.toDate(), "yyyy-MM-dd") === format(displayedDate, "yyyy-MM-dd") && !slot.isBooked
-  ).sort((a,b) => a.startTime.seconds - b.startTime.seconds);
+  const displayedDate = selectedDate || new Date(); 
+  const normalizedDisplayedDateStart = startOfDay(displayedDate);
 
-  const bookedSlotsForSelectedDate = existingSlots.filter(slot => 
-    format(slot.startTime.toDate(), "yyyy-MM-dd") === format(displayedDate, "yyyy-MM-dd") && slot.isBooked
-  ).sort((a,b) => a.startTime.seconds - b.startTime.seconds);
+
+  const slotsForSelectedDate = existingSlots.filter(slot => {
+    if (slot.startTime) {
+      const slotDateStart = startOfDay(new Date(slot.startTime));
+      return isEqual(slotDateStart, normalizedDisplayedDateStart) && !slot.isBooked;
+    }
+    return false;
+  }).sort((a,b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+
+  const bookedSlotsForSelectedDate = existingSlots.filter(slot => {
+    if (slot.startTime) {
+      const slotDateStart = startOfDay(new Date(slot.startTime));
+      return isEqual(slotDateStart, normalizedDisplayedDateStart) && slot.isBooked;
+    }
+    return false;
+  }).sort((a,b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
 
 
   return (
@@ -184,7 +200,7 @@ export default function ManageAvailabilityPage() {
               selected={selectedDate}
               onSelect={setSelectedDate}
               className="rounded-md border p-0"
-              disabled={(date) => isPast(date) && !isToday(date)} // Disable past dates except today
+              disabled={(date) => isPast(date) && !isToday(date)} 
             />
           </CardContent>
         </Card>
@@ -257,7 +273,7 @@ export default function ManageAvailabilityPage() {
                     {slotsForSelectedDate.map(slot => (
                       <li key={slot.id} className="flex justify-between items-center p-3 border rounded-md bg-green-50 border-green-200">
                         <span className="font-body text-sm">
-                          {format(slot.startTime.toDate(), "p")} - {format(slot.endTime.toDate(), "p")}
+                          {format(new Date(slot.startTime), "p")} - {format(new Date(slot.endTime), "p")}
                         </span>
                         <Button variant="ghost" size="icon" onClick={() => handleDeleteExistingSlot(slot.id)} aria-label="Delete slot" disabled={isLoading}>
                           <Trash2 className="h-4 w-4 text-destructive" />
@@ -274,9 +290,8 @@ export default function ManageAvailabilityPage() {
                     {bookedSlotsForSelectedDate.map(slot => (
                       <li key={slot.id} className="flex justify-between items-center p-3 border rounded-md bg-amber-50 border-amber-200">
                         <span className="font-body text-sm">
-                          {format(slot.startTime.toDate(), "p")} - {format(slot.endTime.toDate(), "p")} (Booked by {slot.studentName || 'N/A'})
+                          {format(new Date(slot.startTime), "p")} - {format(new Date(slot.endTime), "p")} (Booked by {slot.studentName || 'N/A'})
                         </span>
-                        {/* Optionally, allow cancelling booked slots, with conditions */}
                       </li>
                     ))}
                   </ul>

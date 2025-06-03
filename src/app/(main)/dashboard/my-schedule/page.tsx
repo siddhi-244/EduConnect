@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useAuth } from "@/hooks/use-auth-hook";
@@ -5,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { BookOpenCheck, CalendarX2, History, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+// Button component is not directly used, can be removed if not needed for future actions
+// import { Button } from "@/components/ui/button"; 
 import { useEffect, useState } from "react";
 import type { Booking } from "@/types";
 import { collection, query, where, orderBy, onSnapshot, Timestamp } from "firebase/firestore";
@@ -19,7 +21,10 @@ export default function MySchedulePage() {
   const [loadingBookings, setLoadingBookings] = useState(true);
 
   useEffect(() => {
-    if (!userProfile || !userProfile.uid) return;
+    if (!userProfile || !userProfile.uid) {
+        setLoadingBookings(false); // Ensure loading state is cleared if no user
+        return;
+    }
 
     setLoadingBookings(true);
     const fieldToQuery = userProfile.role === 'teacher' ? 'teacherId' : 'studentId';
@@ -28,24 +33,44 @@ export default function MySchedulePage() {
     const q = query(
       bookingsRef, 
       where(fieldToQuery, "==", userProfile.uid),
-      where("status", "==", "confirmed"), // Only show confirmed bookings
-      orderBy("startTime", "asc")
+      where("status", "==", "confirmed"), 
+      orderBy("startTime", "asc") // Firestore Timestamps are used for orderBy
     );
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const now = Timestamp.now();
+      const nowServerTimestamp = Timestamp.now(); // Use server timestamp for comparison
       const upcoming: Booking[] = [];
       const past: Booking[] = [];
+
       querySnapshot.forEach((doc) => {
-        const booking = { id: doc.id, ...doc.data() } as Booking;
-        if (booking.startTime.seconds > now.seconds) {
-          upcoming.push(booking);
+        const data = doc.data();
+        const bookingFirebase = { 
+            id: doc.id, 
+            ...data 
+        } as Omit<Booking, 'startTime' | 'endTime' | 'createdAt' | 'updatedAt'> & {
+            startTime: Timestamp;
+            endTime: Timestamp;
+            createdAt: Timestamp;
+            updatedAt: Timestamp;
+        };
+
+        // Convert Timestamps to ISO strings for client-side state
+        const serializableBooking: Booking = {
+            ...bookingFirebase,
+            startTime: bookingFirebase.startTime.toDate().toISOString(),
+            endTime: bookingFirebase.endTime.toDate().toISOString(),
+            createdAt: bookingFirebase.createdAt.toDate().toISOString(),
+            updatedAt: bookingFirebase.updatedAt.toDate().toISOString(),
+        };
+
+        if (bookingFirebase.startTime.seconds > nowServerTimestamp.seconds) {
+          upcoming.push(serializableBooking);
         } else {
-          past.push(booking);
+          past.push(serializableBooking);
         }
       });
-      setUpcomingBookings(upcoming);
-      setPastBookings(past.sort((a, b) => b.startTime.seconds - a.startTime.seconds)); // Sort past descending
+      setUpcomingBookings(upcoming); // Already sorted by query
+      setPastBookings(past.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())); // Sort past descending by date
       setLoadingBookings(false);
     }, (error) => {
       console.error("Error fetching bookings:", error);
@@ -66,6 +91,10 @@ export default function MySchedulePage() {
     const otherPartyName = isTeacher ? booking.studentName : booking.teacherName;
     const otherPartyRole = isTeacher ? 'Student' : 'Teacher';
 
+    // Convert ISO strings back to Date objects for formatting
+    const startTimeDate = new Date(booking.startTime);
+    const endTimeDate = new Date(booking.endTime);
+
     return (
       <Card key={booking.id} className="shadow-md hover:shadow-lg transition-shadow">
         <CardHeader>
@@ -75,9 +104,8 @@ export default function MySchedulePage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2 font-body">
-          <p><strong>Date:</strong> {format(booking.startTime.toDate(), "PPP")}</p>
-          <p><strong>Time:</strong> {format(booking.startTime.toDate(), "p")} - {format(booking.endTime.toDate(), "p")}</p>
-          {/* Add cancel button or other actions here if needed */}
+          <p><strong>Date:</strong> {format(startTimeDate, "PPP")}</p>
+          <p><strong>Time:</strong> {format(startTimeDate, "p")} - {format(endTimeDate, "p")}</p>
         </CardContent>
       </Card>
     );
@@ -138,7 +166,6 @@ export default function MySchedulePage() {
   );
 }
 
-// Placeholder for CalendarClock icon if not in lucide-react (it is, but good practice)
 const CalendarClock = (props: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
     <path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"/>

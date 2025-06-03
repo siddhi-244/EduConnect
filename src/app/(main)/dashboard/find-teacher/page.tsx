@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useAuth } from "@/hooks/use-auth-hook";
@@ -8,7 +9,8 @@ import { Users, CheckCircle, Loader2, XCircle, CalendarDays, Search } from "luci
 import React, { useEffect, useState } from "react";
 import type { AvailabilitySlot, Teacher, UserProfile } from "@/types";
 import { getAvailableTeachers, getTeacherAvailabilityForDate, bookSlot } from "@/app/actions/booking.actions";
-import { format, parse } from "date-fns";
+import { format } from "date-fns";
+import { Timestamp } from "firebase/firestore";
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
@@ -52,7 +54,7 @@ export default function FindTeacherPage() {
       setIsLoadingAvailability(true);
       try {
         const slots = await getTeacherAvailabilityForDate(selectedTeacher.uid, selectedDate);
-        setAvailability(slots.filter(slot => !slot.isBooked)); // Only show non-booked slots
+        setAvailability(slots.filter(slot => !slot.isBooked)); 
       } catch (error) {
         console.error("Failed to fetch availability:", error);
         toast({ variant: "destructive", title: "Error", description: `Could not fetch availability for ${selectedTeacher.displayName}.` });
@@ -76,11 +78,11 @@ export default function FindTeacherPage() {
         teacherName: selectedTeacher.displayName,
         teacherEmail: selectedTeacher.email,
         availabilitySlotId: slot.id,
-        startTime: slot.startTime,
-        endTime: slot.endTime,
+        startTime: Timestamp.fromDate(new Date(slot.startTime)), // Convert ISO string to Timestamp
+        endTime: Timestamp.fromDate(new Date(slot.endTime)),     // Convert ISO string to Timestamp
       });
       toast({ title: "Success!", description: `Session with ${selectedTeacher.displayName} booked.` });
-      // Refetch availability for the current teacher and date
+      
       if (selectedTeacher && selectedDate) {
         const slots = await getTeacherAvailabilityForDate(selectedTeacher.uid, selectedDate);
         setAvailability(slots.filter(s => !s.isBooked));
@@ -167,7 +169,7 @@ export default function FindTeacherPage() {
               selected={selectedDate}
               onSelect={setSelectedDate}
               className="rounded-md border p-0"
-              disabled={(date) => date < new Date(new Date().setHours(0,0,0,0)) || !selectedTeacher} // Disable past dates & if no teacher
+              disabled={(date) => date < new Date(new Date().setHours(0,0,0,0)) || !selectedTeacher} 
             />
           </CardContent>
         </Card>
@@ -209,7 +211,7 @@ export default function FindTeacherPage() {
                     disabled={isBooking}
                   >
                     {isBooking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4 text-green-500" />}
-                    {format(slot.startTime.toDate(), "p")} - {format(slot.endTime.toDate(), "p")}
+                    {format(new Date(slot.startTime), "p")} - {format(new Date(slot.endTime), "p")}
                   </Button>
                 ))}
               </div>
