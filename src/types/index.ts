@@ -1,3 +1,4 @@
+
 import type { Timestamp } from 'firebase/firestore';
 
 export interface UserProfile {
@@ -11,14 +12,14 @@ export interface UserProfile {
 export interface AvailabilitySlot {
   id: string;
   teacherId: string;
-  startTime: string; // Was Timestamp
-  endTime: string;   // Was Timestamp
+  startTime: string; 
+  endTime: string;   
   isBooked: boolean;
-  bookedByStudentId?: string;
-  studentName?: string; 
-  studentEmail?: string; 
-  createdAt: string; // Was Timestamp
-  updatedAt: string; // Was Timestamp
+  bookedByStudentId?: string | null; // Allow null for when slot is freed
+  studentName?: string | null; 
+  studentEmail?: string | null; 
+  createdAt: string; 
+  updatedAt: string; 
 }
 
 export interface Booking {
@@ -30,11 +31,14 @@ export interface Booking {
   teacherName: string;
   teacherEmail: string;
   availabilitySlotId: string;
-  startTime: string; // Was Timestamp
-  endTime: string;   // Was Timestamp
-  status: 'confirmed' | 'cancelled_by_student' | 'cancelled_by_teacher';
-  createdAt: string; // Was Timestamp
-  updatedAt: string; // Was Timestamp
+  startTime: string; 
+  endTime: string;   
+  status: 'confirmed' | 'cancelled_by_student' | 'cancelled_by_teacher' | 'completed';
+  createdAt: string; 
+  updatedAt: string; 
+  cancellationReason?: string;
+  cancelledBy?: 'student' | 'teacher' | null;
+  googleMeetLink?: string;
 }
 
 export interface Teacher {
