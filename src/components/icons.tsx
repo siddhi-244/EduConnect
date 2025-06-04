@@ -24,7 +24,7 @@ export function ConnectEdLogo(props: SVGProps<SVGSVGElement>) {
         fontWeight="bold"
         fill="url(#logoGradient)"
       >
-        ConnectEd
+        EduConnect
       </text>
     </svg>
   );

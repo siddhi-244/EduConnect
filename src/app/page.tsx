@@ -13,7 +13,7 @@ export default function HomePage() {
             <div className="flex flex-col justify-center space-y-4">
               <div className="space-y-2">
                 <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline text-primary">
-                  ConnectEd: Seamless Scheduling for Teachers and Students
+                  EduConnect: Seamless Scheduling for Teachers and Students
                 </h1>
                 <p className="max-w-[600px] text-foreground/80 md:text-xl font-body">
                   Empowering education through easy, flexible, and reliable call scheduling. Teachers manage their availability, students book with ease.
@@ -47,10 +47,10 @@ export default function HomePage() {
               Key Features
             </div>
             <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">
-              Why Choose ConnectEd?
+              Why Choose EduConnect?
             </h2>
             <p className="max-w-[900px] text-foreground/70 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed font-body">
-              ConnectEd is designed to simplify communication and scheduling in the educational sphere, fostering better teacher-student interaction.
+              EduConnect is designed to simplify communication and scheduling in the educational sphere, fostering better teacher-student interaction.
             </p>
           </div>
           <div className="mx-auto grid items-start gap-8 sm:max-w-4xl sm:grid-cols-2 md:gap-12 lg:max-w-5xl lg:grid-cols-3">
@@ -82,7 +82,7 @@ export default function HomePage() {
              <FeatureCard
               icon={<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><rect width="20" height="14" x="2" y="3" rx="2"></rect><line x1="8" x2="16" y1="21" y2="21"></line><line x1="12" x2="12" y1="17" y2="21"></line></svg>}
               title="Accessible Anywhere"
-              description="Responsive design ensures ConnectEd works beautifully on desktops, tablets, and mobile devices."
+              description="Responsive design ensures EduConnect works beautifully on desktops, tablets, and mobile devices."
             />
           </div>
         </div>

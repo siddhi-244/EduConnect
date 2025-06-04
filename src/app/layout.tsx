@@ -6,8 +6,8 @@ import SiteHeader from '@/components/layout/site-header';
 import SiteFooter from '@/components/layout/site-footer';
 
 export const metadata: Metadata = {
-  title: 'ConnectEd - Schedule Calls with Teachers',
-  description: 'ConnectEd allows students to easily schedule calls with their teachers based on availability.',
+  title: 'EduConnect - Schedule Calls with Teachers',
+  description: 'EduConnect allows students to easily schedule calls with their teachers based on availability.',
 };
 
 export default function RootLayout({

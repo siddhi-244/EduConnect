@@ -90,7 +90,7 @@ export function SignupForm() {
       const idToken = await user.getIdToken(true); // true forces refresh
       await createSessionCookie(idToken);
 
-      toast({ title: "Account Created!", description: "Welcome to ConnectEd. Redirecting to dashboard..." });
+      toast({ title: "Account Created!", description: "Welcome to EduConnect. Redirecting to dashboard..." });
       router.push("/dashboard");
     } catch (error: any) {
       console.error("Signup failed:", error);
@@ -108,7 +108,7 @@ export function SignupForm() {
         </div>
         <CardTitle className="text-2xl font-headline">Create an Account</CardTitle>
         <CardDescription className="font-body">
-          Join ConnectEd as a {form.watch('role') ? form.watch('role') : 'student or teacher'}.
+          Join EduConnect as a {form.watch('role') ? form.watch('role') : 'student or teacher'}.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -253,7 +253,7 @@ export function LoginForm() {
         </div>
         <CardTitle className="text-2xl font-headline">Welcome Back!</CardTitle>
         <CardDescription className="font-body">
-          Enter your credentials to access your ConnectEd account.
+          Enter your credentials to access your EduConnect account.
         </CardDescription>
       </CardHeader>
       <CardContent>

@@ -34,7 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUserProfile(docSnap.data() as UserProfile);
         } else {
           // Create a basic profile if it doesn't exist (e.g., after social login or if signup form handles this separately)
-          // For ConnectEd, role selection is crucial and should happen during signup.
+          // For EduConnect, role selection is crucial and should happen during signup.
           // This is a fallback.
           const newProfile: UserProfile = {
             uid: user.uid,

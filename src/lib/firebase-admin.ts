@@ -40,7 +40,7 @@ if (!admin.apps.length) {
     
     const credential = admin.credential.cert(parsedServiceAccount as admin.ServiceAccount);
 
-    const databaseURL = `https://educonnect-b6fcd-default-rtdb.firebaseio.com`;
+    const databaseURL = process.env.FIREBASE_DATABASE_URL;
 
     admin.initializeApp({
       credential, // Use the credential object created above

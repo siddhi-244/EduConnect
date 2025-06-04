@@ -359,28 +359,28 @@ async function sendBookingConfirmationEmail(details: {
   const formattedTime = details.startTime.toLocaleString([], { dateStyle: 'full', timeStyle: 'short' });
 
   const studentMailOptions: nodemailer.SendMailOptions = {
-    from: '"ConnectEd" <no-reply@connected.com>',
+    from: '"EduConnect" <no-reply@connected.com>',
     to: details.studentEmail,
-    subject: 'Your ConnectEd Session is Confirmed!',
+    subject: 'Your EduConnect Session is Confirmed!',
     html: `
       <p>Hi ${details.studentName},</p>
       <p>Your session with <strong>${details.teacherName}</strong> on <strong>${formattedTime}</strong> is confirmed.</p>
       <p>Join the session using this link: <a href="${details.googleMeetLink}">${details.googleMeetLink}</a></p>
       <p>We look forward to seeing you!</p>
-      <p>The ConnectEd Team</p>
+      <p>The EduConnect Team</p>
     `,
   };
 
   const teacherMailOptions: nodemailer.SendMailOptions = {
-    from: '"ConnectEd" <no-reply@connected.com>',
+    from: '"EduConnect" <no-reply@connected.com>',
     to: details.teacherEmail,
-    subject: 'New Session Booked on ConnectEd',
+    subject: 'New Session Booked on EduConnect',
     html: `
       <p>Hi ${details.teacherName},</p>
       <p>A new session has been booked with <strong>${details.studentName}</strong> on <strong>${formattedTime}</strong>.</p>
       <p>Meeting Link: <a href="${details.googleMeetLink}">${details.googleMeetLink}</a></p>
       <p>Please ensure you are available at this time.</p>
-      <p>The ConnectEd Team</p>
+      <p>The EduConnect Team</p>
     `,
   };
 
@@ -426,15 +426,15 @@ async function sendCancellationNotificationEmail(details: {
   }
 
   const mailOptionsToOtherParty: nodemailer.SendMailOptions = {
-    from: '"ConnectEd" <no-reply@connected.com>',
+    from: '"EduConnect" <no-reply@connected.com>',
     to: recipientEmail,
-    subject: 'ConnectEd Session Cancelled',
+    subject: 'EduConnect Session Cancelled',
     html: `
       <p>Hi ${recipientName},</p>
-      <p>Your ConnectEd session with <strong>${otherPartyName}</strong> scheduled for <strong>${formattedTime}</strong> has been cancelled by <strong>${cancellerName}</strong> (role: ${details.cancelledBy}).</p>
+      <p>Your EduConnect session with <strong>${otherPartyName}</strong> scheduled for <strong>${formattedTime}</strong> has been cancelled by <strong>${cancellerName}</strong> (role: ${details.cancelledBy}).</p>
       <p><strong>Reason for cancellation:</strong> ${details.reason}</p>
       <p>We apologize for any inconvenience this may cause. Please feel free to schedule another session if needed.</p>
-      <p>The ConnectEd Team</p>
+      <p>The EduConnect Team</p>
     `,
   };
 
@@ -448,15 +448,15 @@ async function sendCancellationNotificationEmail(details: {
   // Send a copy to the teacher if they cancelled
   if (details.cancelledBy === 'teacher' && details.teacherEmail) {
     const teacherSelfNotification: nodemailer.SendMailOptions = {
-      from: '"ConnectEd" <no-reply@connected.com>',
+      from: '"EduConnect" <no-reply@connected.com>',
       to: details.teacherEmail,
-      subject: 'Record: You Cancelled a ConnectEd Session',
+      subject: 'Record: You Cancelled a EduConnect Session',
       html: `
         <p>Hi ${details.teacherName},</p>
         <p>This is a confirmation that you have cancelled your session with <strong>${details.studentName}</strong> (student email: ${details.studentEmail}) scheduled for <strong>${formattedTime}</strong>.</p>
         <p><strong>Reason given:</strong> ${details.reason}</p>
         <p>The student has been notified.</p>
-        <p>The ConnectEd Team</p>
+        <p>The EduConnect Team</p>
       `,
     };
      try {

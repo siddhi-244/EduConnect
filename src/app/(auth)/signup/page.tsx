@@ -2,8 +2,8 @@ import { SignupForm } from "@/components/auth/auth-forms";
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Sign Up - ConnectEd',
-  description: 'Create your ConnectEd account.',
+  title: 'Sign Up - EduConnect',
+  description: 'Create your EduConnect account.',
 };
 
 export default function SignupPage() {
