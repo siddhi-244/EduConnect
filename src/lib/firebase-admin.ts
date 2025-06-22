@@ -5,7 +5,7 @@ console.log('[Admin SDK Step 1] Module loaded.');
 
 if (!admin.apps.length) {
   try {
-    const base64 = process.env.FIREBASE_SERVICE_ACCOUNT;
+    const base64 = process.env.GOOGLE_APPLICATION_CREDENTIALS;
 
     if (!base64) {
       throw new Error('[Admin SDK Setup Error] FIREBASE_SERVICE_ACCOUNT env variable is missing.');
